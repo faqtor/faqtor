@@ -1,0 +1,2 @@
+# faqtor
+Faqtor build autimation
