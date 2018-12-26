@@ -99,17 +99,17 @@ export const cmd = (s: string): IFactor => {
         let err: Error = null;
         let rpath: string;
         [err, rpath] = await new Promise((resolve) => {
-            which(argv[0], (err, rpath) => resolve([err, rpath]))
-        });
-        if (!err) {
-            return await runCommand(rpath, ...argv.slice(1));
-        }
-        [err, rpath] = await new Promise((resolve) => {
             resolveBin(argv[0], (err, rpath) => resolve([err, rpath]))
         });
         if (!err) {
             argv[0] = rpath;
             return await runCommand(process.argv[0], ...argv);
+        }
+        [err, rpath] = await new Promise((resolve) => {
+            which(argv[0], (err, rpath) => resolve([err, rpath]))
+        });
+        if (!err) {
+            return await runCommand(rpath, ...argv.slice(1));
         }
         return err;
     }
@@ -118,6 +118,10 @@ export const cmd = (s: string): IFactor => {
 }
 
 export const seq = (...factors: IFactor[]): IFactor => {
+    let files = null;
+    if (factors.length) {
+        files = factors[factors.length-1].Files;
+    }
     const run  = async () => {
         for (const f of factors) {
             const err = await f.run();
@@ -125,5 +129,5 @@ export const seq = (...factors: IFactor[]): IFactor => {
         }
         return null;
     }
-    return new Factor(null, run);
+    return new Factor(files, run);
 }
