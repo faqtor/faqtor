@@ -18,8 +18,7 @@
   "typings": "./dist/index.d.ts",
   "files": [
     "dist",
-    "src",
-    "bin"
+    "src"
   ],
   "scripts": {
     "build:es": "tsc -p build/tsconfig.es.json && mv ./dist/index.js ./dist/index.es.js",
