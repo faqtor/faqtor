@@ -31,6 +31,7 @@ export interface IFactor {
     readonly Input: Domain;
     readonly Output: Domain;
     run(argv?: string[]): Promise<Error>;
+    factor(input: Domain, output?: Domain): IFactor;
 }
 
 const normalizeDomain = (d: Domain): string[] => {
@@ -58,7 +59,11 @@ class Factor implements IFactor {
     ) {
         this.run = run;
     }
-    run(argv?: string[]): Promise<Error> { return null; }
+
+    public run(argv?: string[]): Promise<Error> { return null; }
+    public factor(input: Domain, output?: Domain): IFactor {
+        return factor(this, input, output);
+    }
 }
 
 export function factor(f: IFactor, input: Domain, output: Domain = null): IFactor {

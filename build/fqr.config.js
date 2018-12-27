@@ -1,4 +1,4 @@
-const { factor, cmd, seq } = require("faqtor");
+const { cmd, seq } = require("./faqtor");
 
 const dist = "./dist";
 const modules = "./node_modules";
@@ -6,12 +6,24 @@ const input = "src/**/*";
 const esOutput = `${dist}/index.es.js`;
 const cjsOutput = `${dist}/index.js`;
 
-const tsc = (inp, outp, project) => factor(cmd(`tsc -p ${project}`), inp, outp);
-const rename = (a, b) => factor(cmd(`mv ${a} ${b}`), a, b);
-const clean = factor(cmd(`rimraf ${dist}`), dist);
-const cleanAll = factor(cmd(`rimraf ${dist} ${modules}`), [dist, modules]);
+const tsc = (inp, outp, project) =>
+    cmd(`tsc -p ${project}`)
+        .factor(inp, outp);
 
-const buildEs = seq(tsc(input, esOutput, "build/tsconfig.es.json"), rename(cjsOutput, esOutput));
+const rename = (a, b) => 
+    cmd(`mv ${a} ${b}`)
+        .factor(a, b);
+
+const clean = cmd(`rimraf ${dist}`)
+    .factor(dist);
+
+const cleanAll = cmd(`rimraf ${dist} ${modules}`)
+    .factor([dist, modules]);
+
+const buildEs = seq(
+    tsc(input, esOutput, "build/tsconfig.es.json"),
+    rename(cjsOutput, esOutput));
+
 const buildCjs = tsc(input, cjsOutput, "build/tsconfig.cjs.json")
 
 module.exports = {
