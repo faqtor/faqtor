@@ -28,11 +28,19 @@ const runGlobs = async (globs: string[], options: glob.IOptions) => {
 export type Domain = null | string | string[];
 
 export interface IFactor {
-    readonly Files: Domain;
+    readonly Input: Domain;
+    readonly Output: Domain;
     run(argv?: string[]): Promise<Error>;
 }
 
-const normalizeDomain = (d: Domain): string[] => d === null ? [] : typeof d === "string" ? [d] : d;
+const normalizeDomain = (d: Domain): string[] => {
+    let dom = d === null ? [] : typeof d === "string" ? [d] : d;
+    const tab: {[name in string]: boolean} = {};
+    for (const s of dom) {
+        tab[s] = true;
+    }
+    return Object.getOwnPropertyNames(tab);
+}
 
 const fileStat = util.promisify(fs.stat);
 
@@ -43,15 +51,19 @@ function printErrors(errs: Error[]) {
 }
 
 class Factor implements IFactor {
-    constructor(readonly Files: Domain, run: (argv?: string[]) => Promise<Error>) {
+    constructor(
+        readonly Input: Domain,
+        readonly Output: Domain,
+        run: (argv?: string[]) => Promise<Error>
+    ) {
         this.run = run;
     }
     run(argv?: string[]): Promise<Error> { return null; }
 }
 
 export function factor(f: IFactor, input: Domain, output: Domain = null): IFactor {
-    const inp = normalizeDomain(input);
-    const outp = normalizeDomain(output);
+    const inp = normalizeDomain(normalizeDomain(input).concat(normalizeDomain(f.Input)));
+    const outp = normalizeDomain(normalizeDomain(output).concat(normalizeDomain(f.Output)));
 
     const run = async () => {
         if (!inp.length) { return await f.run(); }
@@ -75,10 +87,11 @@ export function factor(f: IFactor, input: Domain, output: Domain = null): IFacto
         return null;
     }
 
-    return new Factor(outp, run);
+    return new Factor(inp, outp, run);
 }
 
 async function runCommand(cmd: string, ...args: string[]): Promise<Error> {
+    console.log("FAQTOR RUNS COMMAND:", [cmd].concat(args).join(" "));
     return await new Promise((resolve) => {
         const proc = execFile(cmd, args);
         proc.stdout.on('data', function(data) {
@@ -114,13 +127,15 @@ export const cmd = (s: string): IFactor => {
         return err;
     }
     
-    return new Factor(null, run);
+    return new Factor(null, null, run);
 }
 
 export const seq = (...factors: IFactor[]): IFactor => {
-    let files = null;
-    if (factors.length) {
-        files = factors[factors.length-1].Files;
+    let depends: Domain = [];
+    let results: Domain = [];
+    for (const f of factors) {
+        depends = depends.concat(normalizeDomain(f.Input));
+        results = results.concat(normalizeDomain(f.Output));
     }
     const run  = async () => {
         for (const f of factors) {
@@ -129,5 +144,5 @@ export const seq = (...factors: IFactor[]): IFactor => {
         }
         return null;
     }
-    return new Factor(files, run);
+    return new Factor(depends, results, run);
 }
