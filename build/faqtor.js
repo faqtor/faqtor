@@ -157,6 +157,7 @@ async function runCommand(extCmd, ...args) {
         proc.on("error", (err) => resolve(err));
     });
 }
+exports.func = (f, input = null, output = null) => new Factor(input, output, f);
 exports.cmd = (s) => {
     const argv = string_argv_1.default(s);
     const run = async () => {

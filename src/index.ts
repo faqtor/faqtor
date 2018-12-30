@@ -174,6 +174,10 @@ async function runCommand(extCmd: string, ...args: string[]): Promise<Error> {
     });
 }
 
+export const func = (
+    f: (argv?: string[]) => Promise<Error>,
+    input: Domain = null, output: Domain = null): IFactor => new Factor(input, output, f);
+
 export const cmd = (s: string): IFactor => {
     const argv = stringArgv(s);
     const run = async () => {
