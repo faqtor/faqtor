@@ -31,5 +31,6 @@ module.exports = {
     cleanAll,
     buildEs,
     buildCjs,
-    build: seq(buildEs, buildCjs)
+    build: seq(buildEs, buildCjs),
+    echo: cmd("echo OK")
 }

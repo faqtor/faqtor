@@ -1,7 +1,4 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
@@ -9,14 +6,41 @@ var __importStar = (this && this.__importStar) || function (mod) {
     result["default"] = mod;
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const glob_1 = __importDefault(require("glob"));
-const fs = __importStar(require("fs"));
-const util = __importStar(require("util"));
-const string_argv_1 = __importDefault(require("string-argv"));
-const which_1 = __importDefault(require("which"));
 const child_process_1 = require("child_process");
-const resolveBin = require("resolve-bin");
+const fs = __importStar(require("fs"));
+const glob_1 = __importDefault(require("glob"));
+const path = __importStar(require("path"));
+const string_argv_1 = __importDefault(require("string-argv"));
+const util = __importStar(require("util"));
+const which_1 = __importDefault(require("which"));
+class ErrorPathDoesNotExists extends Error {
+    constructor(p) {
+        super(`Path ${p} does not exist`);
+    }
+}
+const pathExists = (p) => new Promise((resolve) => {
+    fs.access(p, (err) => resolve(err === null));
+});
+const runExternal = (extCmd) => new Promise((resolve) => {
+    child_process_1.exec(extCmd, (err, stdout) => {
+        resolve([stdout.trim(), err]);
+    });
+});
+const resolveBin = async (name) => {
+    const [binsPath, err] = await runExternal("npm bin");
+    if (err) {
+        return ["", err];
+    }
+    const binPath = path.join(binsPath, name);
+    if (!await pathExists(binPath)) {
+        return ["", new ErrorPathDoesNotExists(binPath)];
+    }
+    return [binPath, null];
+};
 const runGlob = async (pattern, options) => new Promise((resolve) => {
     glob_1.default(pattern, options, (err, matches) => resolve({ Errs: err ? [err] : null, Matches: matches }));
 });
@@ -27,8 +51,11 @@ const runGlobs = async (globs, options) => {
         Matches: [].concat(...r.map((x) => x.Matches)),
     };
 };
-const normalizeDomain = (d) => {
-    let dom = d === null ? [] : typeof d === "string" ? [d] : d;
+const norm = (d) => {
+    const dom = d === null ? [] : typeof d === "string" ? [d] : d;
+    if (dom.length < 2) {
+        return dom;
+    }
     const tab = {};
     for (const s of dom) {
         tab[s] = true;
@@ -41,21 +68,55 @@ function printErrors(errs) {
         console.error(err);
     }
 }
+const isReported = (e) => !!(e.reported);
+class ErrorNothingToDo extends Error {
+    constructor() {
+        super("");
+    }
+}
 class Factor {
-    constructor(Input, Output, run) {
+    constructor(Input, Output, runf, name = null) {
         this.Input = Input;
         this.Output = Output;
-        this.run = run;
+        this.runf = runf;
+        this.name = name;
     }
-    run(argv) { return null; }
+    async run(argv) {
+        if (this.name) {
+            console.log("\n" + `==<${this.name}>`);
+        }
+        const err = await this.runf(argv);
+        if (this.name) {
+            if (err) {
+                if (!isReported(err)) {
+                    err.reported = true;
+                    if (err instanceof ErrorNothingToDo) {
+                        console.log(`~~NOTHING TO DO FOR <${this.name}>`);
+                    }
+                    else {
+                        console.log(`~~ERROR IN <${this.name}>:`, err);
+                    }
+                }
+            }
+            else {
+                console.log(`~~<${this.name}> SUCCESS`);
+            }
+        }
+        return err;
+    }
     factor(input, output) {
         return factor(this, input, output);
     }
+    named(name) {
+        this.name = name;
+        return this;
+    }
 }
 function factor(f, input, output = null) {
-    const inp = normalizeDomain(normalizeDomain(input).concat(normalizeDomain(f.Input)));
-    const outp = normalizeDomain(normalizeDomain(output).concat(normalizeDomain(f.Output)));
+    const inp = norm(norm(input).concat(norm(f.Input)));
+    const outp = norm(norm(output).concat(norm(f.Output)));
     const run = async () => {
+        // always run factor if no input globs:
         if (!inp.length) {
             return await f.run();
         }
@@ -63,15 +124,16 @@ function factor(f, input, output = null) {
         if (filesIn.Errs.length) {
             printErrors(filesIn.Errs);
         }
+        // nothing to do if has globs but no files:
         if (!filesIn.Matches.length) {
-            return null;
+            return new ErrorNothingToDo();
         }
+        // always run factor if no output files:
         if (!outp.length) {
             return await f.run(filesIn.Matches);
         }
-        const accOut = await Promise.all(outp.map((x) => new Promise((resolve) => {
-            fs.access(x, (err) => resolve(err === null));
-        })));
+        const accOut = await Promise.all(outp.map((x) => pathExists(x)));
+        // always run factor if some of output files do not exist:
         if (accOut.filter((x) => !x).length) {
             return await f.run(filesIn.Matches);
         }
@@ -82,21 +144,21 @@ function factor(f, input, output = null) {
         if (inModified > outModified) {
             return await f.run(filesIn.Matches);
         }
-        return null;
+        return new ErrorNothingToDo();
     };
     return new Factor(inp, outp, run);
 }
 exports.factor = factor;
-async function runCommand(cmd, ...args) {
-    console.log("FAQTOR RUNS COMMAND:", [cmd].concat(args).join(" "));
+async function runCommand(extCmd, ...args) {
+    console.log("==COMMAND:", [extCmd].concat(args).join(" "));
     return await new Promise((resolve) => {
-        const proc = child_process_1.execFile(cmd, args);
-        proc.stdout.on('data', function (data) {
+        const proc = child_process_1.spawn(extCmd, args, { stdio: [process.stdin, process.stdout, process.stderr] });
+        /*proc.stdout.on('data', function(data) {
             console.log(data.toString());
         });
-        proc.stderr.on('data', function (data) {
+        proc.stderr.on('data', function(data) {
             console.error(data.toString());
-        });
+        });*/
         proc.on("exit", () => resolve(null));
         proc.on("error", (err) => resolve(err));
     });
@@ -109,15 +171,13 @@ exports.cmd = (s) => {
         }
         let err = null;
         let rpath;
-        [err, rpath] = await new Promise((resolve) => {
-            resolveBin(argv[0], (err, rpath) => resolve([err, rpath]));
-        });
+        [rpath, err] = await resolveBin(argv[0]);
         if (!err) {
             argv[0] = rpath;
             return await runCommand(process.argv[0], ...argv);
         }
         [err, rpath] = await new Promise((resolve) => {
-            which_1.default(argv[0], (err, rpath) => resolve([err, rpath]));
+            which_1.default(argv[0], (e, p) => resolve([e, p]));
         });
         if (!err) {
             return await runCommand(rpath, ...argv.slice(1));
@@ -130,8 +190,8 @@ exports.seq = (...factors) => {
     let depends = [];
     let results = [];
     for (const f of factors) {
-        depends = depends.concat(normalizeDomain(f.Input));
-        results = results.concat(normalizeDomain(f.Output));
+        depends = depends.concat(norm(f.Input));
+        results = results.concat(norm(f.Output));
     }
     const run = async () => {
         for (const f of factors) {

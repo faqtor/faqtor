@@ -22,13 +22,14 @@
   ],
   "scripts": {
     "build:es": "tsc -p build/tsconfig.es.json && mv ./dist/index.js ./dist/index.es.js",
-    "build:cjs": "tsc -p build/tsconfig.cjs.json",
+    "build:cjs": "tsc -p build/tsconfig.cjs.json && rimraf ./build/faqtor.js && cp ./dist/index.js ./build/faqtor.js",
     "build": "npm run clean:dist && npm run build:es && npm run build:cjs",
     "clean:dist": "rimraf ./dist",
     "clean:all": "rimraf ./dist ./node_modules"
   },
   "author": "Osman Bineev",
   "devDependencies": {
+    "cash-cp": "^0.2.0",
     "cash-mv": "^0.2.0",
     "rimraf": "^2.6.2",
     "tslint": "^5.11.0",

@@ -1,12 +1,39 @@
-import glob from "glob";
+import { exec, spawn } from "child_process";
 import * as fs from "fs";
-import * as util from "util";
+import glob from "glob";
+import * as path from "path";
 import stringArgv from "string-argv";
+import * as util from "util";
 import which from "which";
-import { execFile } from "child_process";
 
-const resolveBin = require("resolve-bin") as
-    (name: string, cb: (err: Error, rpath: string) => void) => void;
+class ErrorPathDoesNotExists extends Error {
+    constructor(p: string) {
+        super(`Path ${p} does not exist`);
+    }
+}
+
+const pathExists = (p: string) => new Promise<boolean>((resolve) => {
+    fs.access(p, (err) => resolve(err === null));
+});
+
+const runExternal = (extCmd: string): Promise<[string, Error]> => new Promise((resolve) => {
+    exec(extCmd, (err, stdout) => {
+        resolve([stdout.trim(), err]);
+    });
+});
+
+const resolveBin = async (name: string): Promise<[string, Error]> => {
+    const [binsPath, err] = await runExternal("npm bin");
+    if (err) {
+        return ["", err];
+    }
+
+    const binPath = path.join(binsPath, name);
+    if (!await pathExists(binPath)) {
+        return ["", new ErrorPathDoesNotExists(binPath)];
+    }
+    return [binPath, null];
+};
 
 interface IGlobMatch {
     Errs:    Error[];
@@ -14,8 +41,8 @@ interface IGlobMatch {
 }
 
 const runGlob = async (pattern: string, options: glob.IOptions) => new Promise<IGlobMatch>((resolve) => {
-    glob(pattern, options, (err, matches) => resolve({Errs: err ? [err] : null, Matches: matches}))
-})
+    glob(pattern, options, (err, matches) => resolve({Errs: err ? [err] : null, Matches: matches}));
+});
 
 const runGlobs = async (globs: string[], options: glob.IOptions) => {
     const r = await Promise.all(globs.map((g) => runGlob(g, options)));
@@ -23,7 +50,7 @@ const runGlobs = async (globs: string[], options: glob.IOptions) => {
         Errs: [].concat(r.filter((x) => !!x.Errs)),
         Matches: [].concat(...r.map((x) => x.Matches)),
     };
-}
+};
 
 export type Domain = null | string | string[];
 
@@ -34,14 +61,15 @@ export interface IFactor {
     factor(input: Domain, output?: Domain): IFactor;
 }
 
-const normalizeDomain = (d: Domain): string[] => {
-    let dom = d === null ? [] : typeof d === "string" ? [d] : d;
+const norm = (d: Domain): string[] => {
+    const dom = d === null ? [] : typeof d === "string" ? [d] : d;
+    if (dom.length < 2) { return dom; }
     const tab: {[name in string]: boolean} = {};
     for (const s of dom) {
         tab[s] = true;
     }
     return Object.getOwnPropertyNames(tab);
-}
+};
 
 const fileStat = util.promisify(fs.stat);
 
@@ -51,36 +79,78 @@ function printErrors(errs: Error[]) {
     }
 }
 
+interface IReportedError extends Error {
+    reported: boolean;
+}
+
+const isReported = (e: Error): e is IReportedError => !!((e as IReportedError).reported);
+
+class ErrorNothingToDo extends Error {
+    constructor() {
+        super("");
+    }
+}
+
 class Factor implements IFactor {
     constructor(
         readonly Input: Domain,
         readonly Output: Domain,
-        run: (argv?: string[]) => Promise<Error>
-    ) {
-        this.run = run;
+        private runf: (argv?: string[]) => Promise<Error>,
+        private name: string = null,
+    ) {}
+
+    public async run(argv?: string[]): Promise<Error> {
+        if (this.name) {
+            console.log("\n" + `==<${this.name}>`);
+        }
+        const err = await this.runf(argv);
+        if (this.name) {
+            if (err) {
+                if (!isReported(err)) {
+                    (err as IReportedError).reported = true;
+                    if (err instanceof ErrorNothingToDo) {
+                        console.log(`~~NOTHING TO DO FOR <${this.name}>`);
+                    } else {
+                        console.log(`~~ERROR IN <${this.name}>:`, err);
+                    }
+                }
+            } else {
+                console.log(`~~<${this.name}> SUCCESS`);
+            }
+        }
+        return err;
     }
 
-    public run(argv?: string[]): Promise<Error> { return null; }
     public factor(input: Domain, output?: Domain): IFactor {
         return factor(this, input, output);
+    }
+
+    public named(name: string) { // DO NOT CALL THIS INSIDE FAQTOR LIBRARY!
+        this.name = name;
+        return this;
     }
 }
 
 export function factor(f: IFactor, input: Domain, output: Domain = null): IFactor {
-    const inp = normalizeDomain(normalizeDomain(input).concat(normalizeDomain(f.Input)));
-    const outp = normalizeDomain(normalizeDomain(output).concat(normalizeDomain(f.Output)));
+    const inp = norm(norm(input).concat(norm(f.Input)));
+    const outp = norm(norm(output).concat(norm(f.Output)));
 
     const run = async () => {
+        // always run factor if no input globs:
         if (!inp.length) { return await f.run(); }
         const filesIn = await runGlobs(inp, {});
         if (filesIn.Errs.length) {
             printErrors(filesIn.Errs);
         }
-        if (!filesIn.Matches.length) { return null; }
+        // nothing to do if has globs but no files:
+        if (!filesIn.Matches.length) { return new ErrorNothingToDo(); }
+
+        // always run factor if no output files:
         if (!outp.length) { return await f.run(filesIn.Matches); }
-        const accOut = await Promise.all(outp.map((x) => new Promise<boolean>((resolve) => {
-            fs.access(x, (err) => resolve(err === null))
-        })));
+
+        const accOut = await Promise.all(outp.map((x) => pathExists(x)));
+
+        // always run factor if some of output files do not exist:
         if (accOut.filter((x) => !x).length) { return await f.run(filesIn.Matches); }
 
         const statsIn = await Promise.all(filesIn.Matches.map(async (x) => fileStat(x)));
@@ -89,25 +159,19 @@ export function factor(f: IFactor, input: Domain, output: Domain = null): IFacto
         const inModified = Math.max(...statsIn.map((x) => x.mtime.getTime()));
         const outModified = Math.max(...statsOut.map((x) => x.mtime.getTime()));
         if (inModified > outModified) { return await f.run(filesIn.Matches); }
-        return null;
-    }
+        return new ErrorNothingToDo();
+    };
 
     return new Factor(inp, outp, run);
 }
 
-async function runCommand(cmd: string, ...args: string[]): Promise<Error> {
-    console.log("FAQTOR RUNS COMMAND:", [cmd].concat(args).join(" "));
+async function runCommand(extCmd: string, ...args: string[]): Promise<Error> {
+    console.log("==COMMAND:", [extCmd].concat(args).join(" "));
     return await new Promise((resolve) => {
-        const proc = execFile(cmd, args);
-        proc.stdout.on('data', function(data) {
-            console.log(data.toString()); 
-        });
-        proc.stderr.on('data', function(data) {
-            console.error(data.toString()); 
-        });
+        const proc = spawn(extCmd, args, {stdio: [process.stdin, process.stdout, process.stderr]});
         proc.on("exit", () => resolve(null));
         proc.on("error", (err) => resolve(err));
-    })
+    });
 }
 
 export const cmd = (s: string): IFactor => {
@@ -116,31 +180,29 @@ export const cmd = (s: string): IFactor => {
         if (!argv.length) { return null; }
         let err: Error = null;
         let rpath: string;
-        [err, rpath] = await new Promise((resolve) => {
-            resolveBin(argv[0], (err, rpath) => resolve([err, rpath]))
-        });
+        [rpath, err] = await resolveBin(argv[0]);
         if (!err) {
             argv[0] = rpath;
             return await runCommand(process.argv[0], ...argv);
         }
         [err, rpath] = await new Promise((resolve) => {
-            which(argv[0], (err, rpath) => resolve([err, rpath]))
+            which(argv[0], (e, p) => resolve([e, p]));
         });
         if (!err) {
             return await runCommand(rpath, ...argv.slice(1));
         }
         return err;
-    }
-    
+    };
+
     return new Factor(null, null, run);
-}
+};
 
 export const seq = (...factors: IFactor[]): IFactor => {
     let depends: Domain = [];
     let results: Domain = [];
     for (const f of factors) {
-        depends = depends.concat(normalizeDomain(f.Input));
-        results = results.concat(normalizeDomain(f.Output));
+        depends = depends.concat(norm(f.Input));
+        results = results.concat(norm(f.Output));
     }
     const run  = async () => {
         for (const f of factors) {
@@ -148,6 +210,6 @@ export const seq = (...factors: IFactor[]): IFactor => {
             if (err) { return err; }
         }
         return null;
-    }
+    };
     return new Factor(depends, results, run);
-}
+};
