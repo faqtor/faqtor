@@ -1,6 +1,6 @@
 {
   "name": "faqtor",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Faqtor build automation tool",
   "repository": {
     "type": "git",
@@ -41,7 +41,6 @@
     "@types/string-argv": "^0.1.0",
     "@types/which": "^1.3.1",
     "glob": "^7.1.3",
-    "resolve-bin": "^0.4.0",
     "string-argv": "^0.1.1",
     "which": "^1.3.1"
   }
