@@ -207,7 +207,7 @@ export const seq = (...factors: IFactor[]): IFactor => {
     const run  = async () => {
         for (const f of factors) {
             const err = await f.run();
-            if (err) { return err; }
+            if (err && !(err instanceof ErrorNothingToDo)) { return err; }
         }
         return null;
     };

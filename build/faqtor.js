@@ -153,12 +153,6 @@ async function runCommand(extCmd, ...args) {
     console.log("==COMMAND:", [extCmd].concat(args).join(" "));
     return await new Promise((resolve) => {
         const proc = child_process_1.spawn(extCmd, args, { stdio: [process.stdin, process.stdout, process.stderr] });
-        /*proc.stdout.on('data', function(data) {
-            console.log(data.toString());
-        });
-        proc.stderr.on('data', function(data) {
-            console.error(data.toString());
-        });*/
         proc.on("exit", () => resolve(null));
         proc.on("error", (err) => resolve(err));
     });
@@ -196,7 +190,7 @@ exports.seq = (...factors) => {
     const run = async () => {
         for (const f of factors) {
             const err = await f.run();
-            if (err) {
+            if (err && !(err instanceof ErrorNothingToDo)) {
                 return err;
             }
         }

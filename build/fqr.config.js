@@ -6,13 +6,8 @@ const input = "src/**/*";
 const esOutput = `${dist}/index.es.js`;
 const cjsOutput = `${dist}/index.js`;
 
-const tsc = (inp, outp, project) =>
-    cmd(`tsc -p ${project}`)
-        .factor(inp, outp);
-
-const rename = (a, b) => 
-    cmd(`mv ${a} ${b}`)
-        .factor(a, b);
+const tsc = (project) => cmd(`tsc -p ${project}`);
+const rename = (a, b) => cmd(`mv ${a} ${b}`);
 
 const clean = cmd(`rimraf ${dist}`)
     .factor(dist);
@@ -21,10 +16,12 @@ const cleanAll = cmd(`rimraf ${dist} ${modules}`)
     .factor([dist, modules]);
 
 const buildEs = seq(
-    tsc(input, esOutput, "build/tsconfig.es.json"),
-    rename(cjsOutput, esOutput));
+    tsc("build/tsconfig.es.json"),
+    rename(cjsOutput, esOutput))
+        .factor(input, esOutput);
 
-const buildCjs = tsc(input, cjsOutput, "build/tsconfig.cjs.json")
+const buildCjs = tsc("build/tsconfig.cjs.json")
+    .factor(input, cjsOutput);
 
 module.exports = {
     clean,

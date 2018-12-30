@@ -1,6 +1,6 @@
 {
   "name": "faqtor",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Faqtor build automation tool",
   "repository": {
     "type": "git",
