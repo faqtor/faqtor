@@ -62,7 +62,7 @@ export interface IFactor {
 }
 
 const norm = (d: Domain): string[] => {
-    const dom = d === null ? [] : typeof d === "string" ? [d] : d;
+    const dom = !d ? [] : typeof d === "string" ? [d] : d;
     if (dom.length < 2) { return dom; }
     const tab: {[name in string]: boolean} = {};
     for (const s of dom) {
@@ -209,11 +209,14 @@ export const seq = (...factors: IFactor[]): IFactor => {
         results = results.concat(norm(f.Output));
     }
     const run  = async () => {
+        let err: Error = null;
         for (const f of factors) {
-            const err = await f.run();
+            err = await f.run();
             if (err && !(err instanceof ErrorNothingToDo)) { return err; }
         }
-        return null;
+        return err;
     };
     return new Factor(depends, results, run);
 };
+
+export const cmds = (...c: string[]): IFactor => seq(...c.map((s) => cmd(s)));

@@ -52,7 +52,7 @@ const runGlobs = async (globs, options) => {
     };
 };
 const norm = (d) => {
-    const dom = d === null ? [] : typeof d === "string" ? [d] : d;
+    const dom = !d ? [] : typeof d === "string" ? [d] : d;
     if (dom.length < 2) {
         return dom;
     }
@@ -189,14 +189,16 @@ exports.seq = (...factors) => {
         results = results.concat(norm(f.Output));
     }
     const run = async () => {
+        let err = null;
         for (const f of factors) {
-            const err = await f.run();
+            err = await f.run();
             if (err && !(err instanceof ErrorNothingToDo)) {
                 return err;
             }
         }
-        return null;
+        return err;
     };
     return new Factor(depends, results, run);
 };
+exports.cmds = (...c) => exports.seq(...c.map((s) => exports.cmd(s)));
 //# sourceMappingURL=index.js.map
