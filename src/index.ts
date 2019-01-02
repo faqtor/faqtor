@@ -86,7 +86,7 @@ interface IReportedError extends Error {
 const isReported = (e: Error): e is IReportedError => !!((e as IReportedError).reported);
 
 class ErrorNothingToDo extends Error {
-    constructor() {
+    constructor(public nothingToDo: boolean = true) {
         super("");
     }
 }

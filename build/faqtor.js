@@ -70,8 +70,9 @@ function printErrors(errs) {
 }
 const isReported = (e) => !!(e.reported);
 class ErrorNothingToDo extends Error {
-    constructor() {
+    constructor(nothingToDo = true) {
         super("");
+        this.nothingToDo = nothingToDo;
     }
 }
 class Factor {
