@@ -75,16 +75,22 @@ class ErrorNothingToDo extends Error {
         this.nothingToDo = nothingToDo;
     }
 }
+const cmdPrefix = "--COMMAND:";
+const tskPrefix = "--TASK:   ";
 class Factor {
-    constructor(Input, Output, runf, name = null) {
+    constructor(Input, Output, runf) {
         this.Input = Input;
         this.Output = Output;
         this.runf = runf;
-        this.name = name;
+        this.name = null;
+        this.taskInfo = null;
     }
     async run(argv) {
         if (this.name) {
             console.log("\n" + `==<${this.name}>`);
+        }
+        if (this.taskInfo) {
+            console.log(`${tskPrefix} ${this.taskInfo}`);
         }
         const err = await this.runf(argv);
         if (this.name) {
@@ -112,7 +118,12 @@ class Factor {
         this.name = name;
         return this;
     }
+    task(info) {
+        this.taskInfo = info;
+        return this;
+    }
 }
+exports.Factor = Factor;
 function factor(f, input, output = null) {
     const inp = norm(norm(input).concat(norm(f.Input)));
     const outp = norm(norm(output).concat(norm(f.Output)));
@@ -133,13 +144,21 @@ function factor(f, input, output = null) {
         if (!outp.length) {
             return await f.run(filesIn.Matches);
         }
-        const accOut = await Promise.all(outp.map((x) => pathExists(x)));
+        const filesOut = await runGlobs(outp, {});
+        if (filesOut.Errs.length) {
+            printErrors(filesOut.Errs);
+        }
+        // always run factor if has output globs but no files:
+        if (!filesOut.Matches.length) {
+            return await f.run(filesIn.Matches);
+        }
+        const accOut = await Promise.all(filesOut.Matches.map((x) => pathExists(x)));
         // always run factor if some of output files do not exist:
         if (accOut.filter((x) => !x).length) {
             return await f.run(filesIn.Matches);
         }
         const statsIn = await Promise.all(filesIn.Matches.map(async (x) => fileStat(x)));
-        const statsOut = await Promise.all(outp.map(async (x) => fileStat(x)));
+        const statsOut = await Promise.all(filesOut.Matches.map(async (x) => fileStat(x)));
         const inModified = Math.max(...statsIn.map((x) => x.mtime.getTime()));
         const outModified = Math.max(...statsOut.map((x) => x.mtime.getTime()));
         if (inModified > outModified) {
@@ -150,11 +169,16 @@ function factor(f, input, output = null) {
     return new Factor(inp, outp, run);
 }
 exports.factor = factor;
+class ErrorNonZeroExitCode extends Error {
+    constructor(cmdName, code) {
+        super(`Process ${cmdName} exited with code ${code}`);
+    }
+}
 async function runCommand(extCmd, ...args) {
-    console.log("==COMMAND:", [extCmd].concat(args).join(" "));
+    console.log(cmdPrefix, [extCmd].concat(args).join(" "));
     return await new Promise((resolve) => {
         const proc = child_process_1.spawn(extCmd, args, { stdio: [process.stdin, process.stdout, process.stderr] });
-        proc.on("exit", () => resolve(null));
+        proc.on("exit", (code) => resolve(code ? new ErrorNonZeroExitCode(extCmd, code) : null));
         proc.on("error", (err) => resolve(err));
     });
 }
