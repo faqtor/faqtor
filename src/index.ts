@@ -209,20 +209,21 @@ export const func = (
 
 export const cmd = (s: string): IFactor => {
     const argv = stringArgv(s);
-    const run = async () => {
-        if (!argv.length) { return null; }
+    const run = async (args?: string[]) => {
+        args = args ? argv.concat(args) : argv;
+        if (!args.length) { return null; }
         let err: Error = null;
         let rpath: string;
-        [rpath, err] = await resolveBin(argv[0]);
+        [rpath, err] = await resolveBin(args[0]);
         if (!err) {
-            argv[0] = rpath;
-            return await runCommand(process.argv[0], ...argv);
+            args[0] = rpath;
+            return await runCommand(process.argv[0], ...args);
         }
         [err, rpath] = await new Promise((resolve) => {
-            which(argv[0], (e, p) => resolve([e, p]));
+            which(args[0], (e, p) => resolve([e, p]));
         });
         if (!err) {
-            return await runCommand(rpath, ...argv.slice(1));
+            return await runCommand(rpath, ...args.slice(1));
         }
         return err;
     };
@@ -249,3 +250,18 @@ export const seq = (...factors: IFactor[]): IFactor => {
 };
 
 export const cmds = (...c: string[]): IFactor => seq(...c.map((s) => cmd(s)));
+
+export enum Mode {
+    production,
+    development,
+}
+
+export let production = true;
+export let mode = Mode.production;
+
+if (typeof (global as any).FAQTOR_MODE !== "undefined") {
+    const m = (global as any).FAQTOR_MODE;
+    const prodSyn = {prod: 1, production: 1};
+    production = m in prodSyn;
+    mode = m in prodSyn ? Mode.production : Mode.development;
+}

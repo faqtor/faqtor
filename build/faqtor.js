@@ -185,22 +185,23 @@ async function runCommand(extCmd, ...args) {
 exports.func = (f, input = null, output = null) => new Factor(input, output, f);
 exports.cmd = (s) => {
     const argv = string_argv_1.default(s);
-    const run = async () => {
-        if (!argv.length) {
+    const run = async (args) => {
+        args = args ? argv.concat(args) : argv;
+        if (!args.length) {
             return null;
         }
         let err = null;
         let rpath;
-        [rpath, err] = await resolveBin(argv[0]);
+        [rpath, err] = await resolveBin(args[0]);
         if (!err) {
-            argv[0] = rpath;
-            return await runCommand(process.argv[0], ...argv);
+            args[0] = rpath;
+            return await runCommand(process.argv[0], ...args);
         }
         [err, rpath] = await new Promise((resolve) => {
-            which_1.default(argv[0], (e, p) => resolve([e, p]));
+            which_1.default(args[0], (e, p) => resolve([e, p]));
         });
         if (!err) {
-            return await runCommand(rpath, ...argv.slice(1));
+            return await runCommand(rpath, ...args.slice(1));
         }
         return err;
     };
@@ -226,4 +227,17 @@ exports.seq = (...factors) => {
     return new Factor(depends, results, run);
 };
 exports.cmds = (...c) => exports.seq(...c.map((s) => exports.cmd(s)));
+var Mode;
+(function (Mode) {
+    Mode[Mode["production"] = 0] = "production";
+    Mode[Mode["development"] = 1] = "development";
+})(Mode = exports.Mode || (exports.Mode = {}));
+exports.production = true;
+exports.mode = Mode.production;
+if (typeof global.FAQTOR_MODE !== "undefined") {
+    const m = global.FAQTOR_MODE;
+    const prodSyn = { prod: 1, production: 1 };
+    exports.production = m in prodSyn;
+    exports.mode = m in prodSyn ? Mode.production : Mode.development;
+}
 //# sourceMappingURL=index.js.map
