@@ -127,10 +127,10 @@ exports.Factor = Factor;
 function factor(f, input, output = null) {
     const inp = norm(norm(input).concat(norm(f.Input)));
     const outp = norm(norm(output).concat(norm(f.Output)));
-    const run = async () => {
+    const run = async (argv) => {
         // always run factor if no input globs:
         if (!inp.length) {
-            return await f.run();
+            return await f.run(argv);
         }
         const filesIn = await runGlobs(inp, {});
         if (filesIn.Errs.length) {
@@ -142,7 +142,7 @@ function factor(f, input, output = null) {
         }
         // always run factor if no output files:
         if (!outp.length) {
-            return await f.run(filesIn.Matches);
+            return await f.run(argv);
         }
         const filesOut = await runGlobs(outp, {});
         if (filesOut.Errs.length) {
@@ -150,19 +150,19 @@ function factor(f, input, output = null) {
         }
         // always run factor if has output globs but no files:
         if (!filesOut.Matches.length) {
-            return await f.run(filesIn.Matches);
+            return await f.run(argv);
         }
         const accOut = await Promise.all(filesOut.Matches.map((x) => pathExists(x)));
         // always run factor if some of output files do not exist:
         if (accOut.filter((x) => !x).length) {
-            return await f.run(filesIn.Matches);
+            return await f.run(argv);
         }
         const statsIn = await Promise.all(filesIn.Matches.map(async (x) => fileStat(x)));
         const statsOut = await Promise.all(filesOut.Matches.map(async (x) => fileStat(x)));
         const inModified = Math.max(...statsIn.map((x) => x.mtime.getTime()));
         const outModified = Math.max(...statsOut.map((x) => x.mtime.getTime()));
         if (inModified > outModified) {
-            return await f.run(filesIn.Matches);
+            return await f.run(argv);
         }
         return new ErrorNothingToDo();
     };
@@ -214,30 +214,29 @@ exports.seq = (...factors) => {
         depends = depends.concat(norm(f.Input));
         results = results.concat(norm(f.Output));
     }
-    const run = async () => {
+    const run = async (argv) => {
         let err = null;
-        for (const f of factors) {
+        let i = 0;
+        for (; i < factor.length - 1; i++) {
+            const f = factors[i];
             err = await f.run();
             if (err && !(err instanceof ErrorNothingToDo)) {
                 return err;
             }
+        }
+        if (i === factor.length - 1) {
+            return await factors[i].run(argv);
         }
         return err;
     };
     return new Factor(depends, results, run);
 };
 exports.cmds = (...c) => exports.seq(...c.map((s) => exports.cmd(s)));
-var Mode;
-(function (Mode) {
-    Mode[Mode["production"] = 0] = "production";
-    Mode[Mode["development"] = 1] = "development";
-})(Mode = exports.Mode || (exports.Mode = {}));
 exports.production = true;
-exports.mode = Mode.production;
+exports.mode = "production";
 if (typeof global.FAQTOR_MODE !== "undefined") {
-    const m = global.FAQTOR_MODE;
+    exports.mode = global.FAQTOR_MODE;
     const prodSyn = { prod: 1, production: 1 };
-    exports.production = m in prodSyn;
-    exports.mode = m in prodSyn ? Mode.production : Mode.development;
+    exports.production = exports.mode in prodSyn;
 }
 //# sourceMappingURL=index.js.map

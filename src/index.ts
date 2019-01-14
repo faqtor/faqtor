@@ -148,9 +148,9 @@ export function factor(f: IFactor, input: Domain, output: Domain = null): IFacto
     const inp = norm(norm(input).concat(norm(f.Input)));
     const outp = norm(norm(output).concat(norm(f.Output)));
 
-    const run = async () => {
+    const run = async (argv?: string[]) => {
         // always run factor if no input globs:
-        if (!inp.length) { return await f.run(); }
+        if (!inp.length) { return await f.run(argv); }
 
         const filesIn = await runGlobs(inp, {});
         if (filesIn.Errs.length) {
@@ -161,7 +161,7 @@ export function factor(f: IFactor, input: Domain, output: Domain = null): IFacto
         if (!filesIn.Matches.length) { return new ErrorNothingToDo(); }
 
         // always run factor if no output files:
-        if (!outp.length) { return await f.run(filesIn.Matches); }
+        if (!outp.length) { return await f.run(argv); }
 
         const filesOut = await runGlobs(outp, {});
         if (filesOut.Errs.length) {
@@ -169,19 +169,19 @@ export function factor(f: IFactor, input: Domain, output: Domain = null): IFacto
         }
 
         // always run factor if has output globs but no files:
-        if (!filesOut.Matches.length) { return await f.run(filesIn.Matches); }
+        if (!filesOut.Matches.length) { return await f.run(argv); }
 
         const accOut = await Promise.all(filesOut.Matches.map((x) => pathExists(x)));
 
         // always run factor if some of output files do not exist:
-        if (accOut.filter((x) => !x).length) { return await f.run(filesIn.Matches); }
+        if (accOut.filter((x) => !x).length) { return await f.run(argv); }
 
         const statsIn = await Promise.all(filesIn.Matches.map(async (x) => fileStat(x)));
         const statsOut = await Promise.all(filesOut.Matches.map(async (x) => fileStat(x)));
 
         const inModified = Math.max(...statsIn.map((x) => x.mtime.getTime()));
         const outModified = Math.max(...statsOut.map((x) => x.mtime.getTime()));
-        if (inModified > outModified) { return await f.run(filesIn.Matches); }
+        if (inModified > outModified) { return await f.run(argv); }
         return new ErrorNothingToDo();
     };
 
@@ -238,12 +238,18 @@ export const seq = (...factors: IFactor[]): IFactor => {
         depends = depends.concat(norm(f.Input));
         results = results.concat(norm(f.Output));
     }
-    const run  = async () => {
+    const run  = async (argv?: string[]) => {
         let err: Error = null;
-        for (const f of factors) {
+        let i = 0;
+        for (; i < factor.length - 1; i++) {
+            const f = factors[i];
             err = await f.run();
             if (err && !(err instanceof ErrorNothingToDo)) { return err; }
         }
+        if (i === factor.length - 1) {
+            return await factors[i].run(argv);
+        }
+
         return err;
     };
     return new Factor(depends, results, run);
@@ -251,17 +257,11 @@ export const seq = (...factors: IFactor[]): IFactor => {
 
 export const cmds = (...c: string[]): IFactor => seq(...c.map((s) => cmd(s)));
 
-export enum Mode {
-    production,
-    development,
-}
-
 export let production = true;
-export let mode = Mode.production;
+export let mode = "production";
 
 if (typeof (global as any).FAQTOR_MODE !== "undefined") {
-    const m = (global as any).FAQTOR_MODE;
+    mode = (global as any).FAQTOR_MODE;
     const prodSyn = {prod: 1, production: 1};
-    production = m in prodSyn;
-    mode = m in prodSyn ? Mode.production : Mode.development;
+    production = mode in prodSyn;
 }
