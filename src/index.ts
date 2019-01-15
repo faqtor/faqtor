@@ -241,12 +241,12 @@ export const seq = (...factors: IFactor[]): IFactor => {
     const run  = async (argv?: string[]) => {
         let err: Error = null;
         let i = 0;
-        for (; i < factor.length - 1; i++) {
+        for (; i < factors.length - 1; i++) {
             const f = factors[i];
             err = await f.run();
             if (err && !(err instanceof ErrorNothingToDo)) { return err; }
         }
-        if (i === factor.length - 1) {
+        if (i === factors.length - 1) {
             return await factors[i].run(argv);
         }
 
