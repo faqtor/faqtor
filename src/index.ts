@@ -79,17 +79,19 @@ function printErrors(errs: Error[]) {
     }
 }
 
-interface IReportedError extends Error {
+export interface IReportedError extends Error {
     reported: boolean;
 }
 
-const isReported = (e: Error): e is IReportedError => !!((e as IReportedError).reported);
+export const isReported = (e: Error): e is IReportedError => !!((e as IReportedError).reported);
 
-class ErrorNothingToDo extends Error {
-    constructor(public nothingToDo: boolean = true) {
+export class ErrorNothingToDo extends Error implements IReportedError {
+    constructor(public nothingToDo: boolean = true, public reported: boolean = true) {
         super("");
     }
 }
+
+export const isNothingToDo = (e: Error): e is ErrorNothingToDo => !!((e as ErrorNothingToDo).nothingToDo);
 
 const cmdPrefix = "--COMMAND:";
 const tskPrefix = "--TASK:   ";
@@ -114,13 +116,11 @@ export class Factor implements IFactor {
         const err = await this.runf(argv);
         if (this.name) {
             if (err) {
-                if (!isReported(err)) {
+                if (err instanceof ErrorNothingToDo) {
+                    console.log(`~~NOTHING TO DO FOR <${this.name}>`);
+                } else if (!isReported(err)) {
                     (err as IReportedError).reported = true;
-                    if (err instanceof ErrorNothingToDo) {
-                        console.log(`~~NOTHING TO DO FOR <${this.name}>`);
-                    } else {
-                        console.log(`~~ERROR IN <${this.name}>:`, err);
-                    }
+                    console.log(`~~ERROR IN <${this.name}>:`, err);
                 }
             } else {
                 console.log(`~~<${this.name}> SUCCESS`);
@@ -195,7 +195,6 @@ class ErrorNonZeroExitCode extends Error {
 }
 
 async function runCommand(extCmd: string, ...args: string[]): Promise<Error> {
-    console.log(cmdPrefix, [extCmd].concat(args).join(" "));
     return await new Promise((resolve) => {
         const proc = spawn(extCmd, args, {stdio: [process.stdin, process.stdout, process.stderr]});
         proc.on("exit", (code) => resolve(code ? new ErrorNonZeroExitCode(extCmd, code) : null));
@@ -208,6 +207,7 @@ export const func = (
     input: Domain = null, output: Domain = null): IFactor => new Factor(input, output, f);
 
 export const cmd = (s: string): IFactor => {
+    s = s.trim();
     const argv = stringArgv(s);
     const run = async (args?: string[]) => {
         args = args ? argv.concat(args) : argv;
@@ -216,13 +216,19 @@ export const cmd = (s: string): IFactor => {
         let rpath: string;
         [rpath, err] = await resolveBin(args[0]);
         if (!err) {
+            const extCmd = process.argv[0];
+            const intCmd = args[0];
             args[0] = rpath;
+            console.log(cmdPrefix, extCmd + " " + s.replace(intCmd, rpath));
             return await runCommand(process.argv[0], ...args);
         }
         [err, rpath] = await new Promise((resolve) => {
             which(args[0], (e, p) => resolve([e, p]));
         });
         if (!err) {
+            const extCmd = rpath;
+            const intCmd = args[0];
+            console.log(cmdPrefix, extCmd + " " + s.replace(intCmd, "").trimLeft());
             return await runCommand(rpath, ...args.slice(1));
         }
         return err;
@@ -235,8 +241,8 @@ export const seq = (...factors: IFactor[]): IFactor => {
     let depends: Domain = [];
     let results: Domain = [];
     for (const f of factors) {
-        depends = depends.concat(norm(f.Input));
-        results = results.concat(norm(f.Output));
+        depends = norm(depends.concat(norm(f.Input)));
+        results = norm(results.concat(norm(f.Output)));
     }
     const run  = async (argv?: string[]) => {
         let err: Error = null;
