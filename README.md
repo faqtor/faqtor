@@ -210,8 +210,7 @@ export type Domain = null | string | string[];
 - return "nothing to do" if input has globs but no files
 - run factor if no output globs
 - run factor if has output globs but no files
-- run factor if some of output files do not exist
-- run factor if modification time for inputs is greater then modification time for outputs
+- run factor if modification time for input is greater then modification time for output
 - return "nothing to do" otherwise
 
 Calling `factor` method with no arguments is meaningful for some factors that have their "native" input or output globs. Example of such factor is one produced by [faqtor-of-uglify](https://www.npmjs.com/package/faqtor-of-uglify):
