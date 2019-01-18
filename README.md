@@ -131,7 +131,7 @@ Hello, World!
 ~~<sequence> SUCCESS
 ```
 
-#### Factor of `cmd`
+#### Factor of `func`
 
 Finally, `func` can produce factor from user defined function, that may have about the following signature:
 
