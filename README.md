@@ -15,11 +15,11 @@ But for this tutorial it is easier to have `fqr` installed globally:
 npm i -g fqr
 ```
 
-Also you may install additional Faqtor plugins in order to use tools like [rollup](https://rollupjs.org) or [browser-sync](https://browsersync.io/).
+Also you may install additional Faqtor plugins in order to use tools like [rollup](https://rollupjs.org) or [browser-sync](https://browsersync.io/). They are called with prefix 'faqtor-of-' usually, like [faqtor-of rollup](https://www.npmjs.com/package/faqtor-of-rollup) or [faqtor-of-browser-sync](https://www.npmjs.com/package/faqtor-of-browser-sync).
 
 ### Project directory layout
 
-A recommended directory layout for the Faqtor project is following:
+The recommended directory layout for the Faqtor project is following:
 
     .
     ├──build               # Folder containing all files related to the project building
@@ -105,7 +105,7 @@ As you can see, `cmd` has properly found locally installed `rimraf` and executed
 
 #### Factor of `seq`
 
-Factor produces by `seq` can execute several factors one by one. It stops execution if some factor returns error. In other words, `seq` acts much like `&&` operator of bash:
+Factor produced by `seq` can execute several factors one by one. It stops execution if some factor returns error. In other words, `seq` acts much like `&&` operator of bash:
 
 ```javascript
 const { cmd, seq } = require("faqtor");
@@ -130,6 +130,16 @@ Hello, World!
 --COMMAND: /usr/bin/node /..../src/faqtor/tutorial/node_modules/.bin/rimraf *.o
 ~~<sequence> SUCCESS
 ```
+
+#### Factor of `cmd`
+
+Finally, `func` can produce factor from user defined function, that may have about the following signature:
+
+```typescript
+function MyFactor(argv?: string[]): Promise<Error>
+```
+
+... _to be continued_ ...
 
 ### Real world examples
 
