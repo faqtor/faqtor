@@ -139,6 +139,91 @@ Finally, `func` can produce factor from user defined function, that may have abo
 function MyFactor(argv?: string[]): Promise<Error>
 ```
 
+Let's create the following configuration:
+
+```javascript
+const { func } = require("faqtor");
+
+const myHello = (someone) => console.log(`Привет, ${someone}!`)
+
+module.exports = {
+    hello: func(myHello),
+}
+```
+
+Now try:
+
+```
+fqr "hello World"
+
+==<hello>
+Привет, World!
+~~<hello> SUCCESS
+```
+
+The difference between providing factor object and just function as entry is that factor have some convenient methods like `task`.
+
+#### Method `task`
+
+Let's modify the previous example:
+
+```javascript
+const { func } = require("faqtor");
+
+const myHello = (someone) => console.log(`Привет, ${someone}!`)
+
+module.exports = {
+    hello: func(myHello).task("greet someone"),
+}
+```
+
+As you see we added call of the `task` method with argument `"greet someone"`. Now we can see task description in the output:
+
+```
+fqr "hello World"
+
+==<hello>
+--TASK:    greet someone
+Привет, World!
+~~<hello> SUCCESS
+```
+
+It is especially convenient when you run many tasks during build process, and some of them may run silently.
+
+#### Method `factor`
+
+Another important feature of factor object is the method of the same name, `factor`. It has the following signature:
+
+```typescript
+public factor(input?: Domain, output?: Domain): IFactor
+```
+
+where `Domain` is TypeScript type:
+
+```typescript
+export type Domain = null | string | string[];
+```
+
+`Domain` argument may contain some [glob](https://www.npmjs.com/package/glob) or array of globs. In this case Faqtor system calculates the maximum of modification times of files matching the glob. Now the given factor will be executed in the case if the time calculated for input is greater then for output. More precisely, Faqtor system checks the following conditions consequently:
+
+- run factor if no input globs
+- return "nothing to do" if input has globs but no files
+- run factor if no output globs
+- run factor if has output globs but no files
+- run factor if some of output files do not exist
+- run factor if modification time for inputs is greater then modification time for outputs
+- return "nothing to do" otherwise
+
+Calling `factor` method with no arguments is meaningful for some factors that have their "native" input or output globs. Example of such factor is one produced by [faqtor-of-uglify](https://www.npmjs.com/package/faqtor-of-uglify):
+
+```javascript
+const uglify = minify("index.js", "index.min.js")
+    .factor()
+    .task("minifying 'index.js'");
+```
+
+Here `"index.js"` and `"index.min.js"` are used by default as input and output `Domain`'s correspondently.
+
 ... _to be continued_ ...
 
 ### Real world examples
