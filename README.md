@@ -237,6 +237,6 @@ Here `"index.js"` and `"index.min.js"` are used by default as input and output `
 
 ### Real world examples
 
-Faqtor build automation system is used in [HyperOOP](https://github.com/HyperOOP/hyperoop) project.
+Faqtor build automation system is used in [HyperOOP](https://github.com/HyperOOP) project.
 The most detailed example of Faqtor/fqr and plugins usage is [source code](https://github.com/HyperOOP/hyperoop-site) of the HyperOOP homepage. Look at [fqr.config.js](https://github.com/HyperOOP/hyperoop-site/blob/master/build/fqr.config.js). Other examples of Faqtor configuration files are [HyperOOP library](https://github.com/HyperOOP/hyperoop/blob/master/build/fqr.config.js) and [HyperOOP Router library](https://github.com/HyperOOP/hyperoop-router/blob/master/build/fqr.config.js) build configuration files. Also all our official plugins have Faqtor configuration files, but they are similar, look at [this one](https://github.com/faqtor/faqtor-of-watch/blob/master/build/fqr.config.js) for example.
 
