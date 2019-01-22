@@ -1,0 +1,26 @@
+
+language: node_js
+node_js:
+  - 8
+  - 10
+
+env:
+  - NODE_ENV=development
+
+before_install:
+  - npm i -g codecov
+
+install:
+  - npm install
+
+cache:
+  directories:
+    - "node_modules"
+    - ".rpt2_cache"
+
+script:
+  - npm test
+  - codecov
+
+notifications:
+email: false

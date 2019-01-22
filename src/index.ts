@@ -171,11 +171,6 @@ export function factor(f: IFactor, input: Domain, output: Domain = null): IFacto
         // always run factor if has output globs but no files:
         if (!filesOut.Matches.length) { return await f.run(argv); }
 
-        const accOut = await Promise.all(filesOut.Matches.map((x) => pathExists(x)));
-
-        // always run factor if some of output files do not exist:
-        if (accOut.filter((x) => !x).length) { return await f.run(argv); }
-
         const statsIn = await Promise.all(filesIn.Matches.map(async (x) => fileStat(x)));
         const statsOut = await Promise.all(filesOut.Matches.map(async (x) => fileStat(x)));
 
@@ -266,8 +261,12 @@ export const cmds = (...c: string[]): IFactor => seq(...c.map((s) => cmd(s)));
 export let production = true;
 export let mode = "production";
 
-if (typeof (global as any).FAQTOR_MODE !== "undefined") {
-    mode = (global as any).FAQTOR_MODE;
-    const prodSyn = {prod: 1, production: 1};
-    production = mode in prodSyn;
+export const setMode = (name?: string) => {
+    if (name) {
+        mode = name;
+        const prodSyn = {prod: 1, production: 1};
+        production = mode in prodSyn;
+    }    
 }
+
+setMode((global as any).FAQTOR_MODE);

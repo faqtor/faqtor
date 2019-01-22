@@ -1,29 +1,29 @@
-"use strict";
 
-const fs = require("fs");
-const { promisify } = require("util");
+import * as fs from "fs";
+import { promisify } from "util";
 
 const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
 
-const faqtor = require("../build/faqtor");
+import * as faqtor from "../src/index";
 
 class TempFiles {
+    private files: { [key in string] : boolean };
     constructor() {
-        this.files_ = {};
+        this.files = {};
     }
 
-    async create(name) {
-        const x = await writeFile(name, name, {encoding: "utf8"}).catch(e => Error(r));
-        if (x instanceof Error) return x;
-        this.files_[name] = true;
+    public async create(name) {
+        const x = await writeFile(name, name, {encoding: "utf8"}).catch(e => Error(e));
+        if (x instanceof Error) { return x; }
+        this.files[name] = true;
     }
 
-    async close() {
+    public async close() {
         let e = null;
-        for (const name in this.files_) {
-            const x = await unlink(name).catch(e => Error(e));
-            if (x instanceof Error) e = x;
+        for (const name in this.files) {
+            const x = await unlink(name).catch((err) => Error(err));
+            if (x instanceof Error) { e = x; }
         }
         return e;
     }
@@ -41,15 +41,15 @@ test("file existance cases", async () => {
         let fc = faqtor.func(()=>null).factor(f2, f1);
         expect(await fc.run()).toBeNull();
         fc = faqtor.func(()=>null).factor(f1, f2);
-        expect(typeof (await fc.run()).nothingToDo).toBe("boolean");
+        expect(typeof (await fc.run() as faqtor.ErrorNothingToDo).nothingToDo).toBe("boolean");
         fc = faqtor.func(()=>null).factor(null, f2);
         expect(await fc.run()).toBeNull();
         fc = faqtor.func(()=>null).factor(f3, f2);
-        expect(typeof (await fc.run()).nothingToDo).toBe("boolean");
+        expect(typeof (await fc.run() as faqtor.ErrorNothingToDo).nothingToDo).toBe("boolean");
         fc = faqtor.func(()=>null).factor(f1, f3);
         expect(await fc.run()).toBeNull();
         fc = faqtor.func(()=>null).factor([f1, f3], f2);
-        expect(typeof (await fc.run()).nothingToDo).toBe("boolean");
+        expect(typeof (await fc.run() as faqtor.ErrorNothingToDo).nothingToDo).toBe("boolean");
     } finally {
         expect(await files.close()).toBeFalsy();
     }
@@ -58,15 +58,15 @@ test("file existance cases", async () => {
 test("sequential factors", async () => {
     let tab = {};
     const fNull = 
-        (name) => faqtor.func(() => { tab[name] = true; return null})
+        (name) => (faqtor.func(() => { tab[name] = true; return null}) as faqtor.Factor)
             .named("fNull")
             .task("fNull");
     const fNothingToDo =
-        (name) => faqtor.func(() => { tab[name] = true; return new faqtor.ErrorNothingToDo()})
-            .named("fNothingToDo")
+        (name) => (faqtor.func(async () => { tab[name] = true; return new faqtor.ErrorNothingToDo()}) as faqtor.Factor)
+            .named("fNothingToDo") 
             .task("fNothingToDo");
     const fError =
-        (name) => faqtor.func(() => { tab[name] = true; return new Error("some error")})
+        (name) => (faqtor.func(async () => { tab[name] = true; return new Error("some error")}) as faqtor.Factor)
             .named("fError")
             .task("fError");
 
@@ -109,3 +109,9 @@ test("cmd factor", async () => {
     }
 });
 
+test("set mode", () => {
+    faqtor.setMode("dev");
+    expect(faqtor.production).toBeFalsy();
+    faqtor.setMode("prod");
+    expect(faqtor.production).toBeTruthy();
+})
