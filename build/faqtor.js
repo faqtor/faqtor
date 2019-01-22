@@ -153,11 +153,6 @@ function factor(f, input, output = null) {
         if (!filesOut.Matches.length) {
             return await f.run(argv);
         }
-        const accOut = await Promise.all(filesOut.Matches.map((x) => pathExists(x)));
-        // always run factor if some of output files do not exist:
-        if (accOut.filter((x) => !x).length) {
-            return await f.run(argv);
-        }
         const statsIn = await Promise.all(filesIn.Matches.map(async (x) => fileStat(x)));
         const statsOut = await Promise.all(filesOut.Matches.map(async (x) => fileStat(x)));
         const inModified = Math.max(...statsIn.map((x) => x.mtime.getTime()));
@@ -241,9 +236,12 @@ exports.seq = (...factors) => {
 exports.cmds = (...c) => exports.seq(...c.map((s) => exports.cmd(s)));
 exports.production = true;
 exports.mode = "production";
-if (typeof global.FAQTOR_MODE !== "undefined") {
-    exports.mode = global.FAQTOR_MODE;
-    const prodSyn = { prod: 1, production: 1 };
-    exports.production = exports.mode in prodSyn;
-}
+exports.setMode = (name) => {
+    if (name) {
+        exports.mode = name;
+        const prodSyn = { prod: 1, production: 1 };
+        exports.production = exports.mode in prodSyn;
+    }
+};
+exports.setMode(global.FAQTOR_MODE);
 //# sourceMappingURL=index.js.map
