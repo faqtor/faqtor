@@ -1,3 +1,13 @@
+<p align="center">
+<a href="https://travis-ci.org/faqtor/faqtor"><img src="https://travis-ci.org/faqtor/faqtor.svg?branch=master" alt="Build Status"></a>
+<a href="https://codecov.io/gh/faqtor/faqtor"><img src="https://codecov.io/gh/faqtor/faqtor/branch/master/graph/badge.svg" alt="codecov"/></a>
+<a href="https://www.npmjs.com/package/faqtor"><img src="https://img.shields.io/npm/v/faqtor.svg" alt="npm"/></a>
+<a href="https://github.com/faqtor/faqtor"><img src="https://img.shields.io/github/languages/top/faqtor/faqtor.svg" alt="GitHub top language"/></a>
+<a href="https://www.npmjs.com/package/faqtor"><img src="https://img.shields.io/npm/dt/faqtor.svg" alt="npm"/></a>
+<a href="https://snyk.io/test/npm/faqtor"><img src="https://snyk.io/test/npm/faqtor/badge.svg" alt="Known Vulnerabilities"/></a>
+<a href="https://gitter.im/faqtor/questions?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"><img src="https://badges.gitter.im/faqtor/questions.svg" alt="Join the chat at https://gitter.im/hyper-oop"/></a>
+</p>
+
 # faqtor
 Promise-based build automation for the NodeJS ecosystem 
 
