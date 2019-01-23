@@ -25,7 +25,7 @@ But for this tutorial it is easier to have `fqr` installed globally:
 npm i -g fqr
 ```
 
-Also you may install additional Faqtor plugins in order to use tools like [rollup](https://rollupjs.org) or [browser-sync](https://browsersync.io/). They are called with prefix 'faqtor-of-' usually, like [faqtor-of rollup](https://www.npmjs.com/package/faqtor-of-rollup) or [faqtor-of-browser-sync](https://www.npmjs.com/package/faqtor-of-browser-sync).
+Also you may install additional Faqtor plugins in order to use tools like [rollup](https://rollupjs.org) or [browser-sync](https://browsersync.io/). They are called with prefix 'faqtor-of-' usually, like [faqtor-of rollup](https://www.npmjs.com/package/faqtor-of-rollup) or [faqtor-of-browser-sync](https://www.npmjs.com/package/faqtor-of-browser-sync). Just search for the [faqtor](https://www.npmjs.com/search?q=faqtor).
 
 ### Project directory layout
 
