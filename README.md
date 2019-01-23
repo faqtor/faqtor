@@ -33,8 +33,8 @@ The recommended directory layout for the Faqtor project is following:
 
     .
     ├──build               # Folder containing all files related to the project building
-    |  ├──fqr.config.js    # Faqtor configuration file containing all information about how to build
-    |  ├──...
+    │  ├──fqr.config.js    # Faqtor configuration file containing all information about how to build
+    │  ├──...
     ├──package.json        # The usual package description file
     ├──...                 # Other project files
 
