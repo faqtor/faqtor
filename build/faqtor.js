@@ -87,6 +87,7 @@ class Factor {
         this.runf = runf;
         this.name = null;
         this.taskInfo = null;
+        this.mustRun = false;
     }
     async run(argv) {
         if (this.name) {
@@ -114,6 +115,13 @@ class Factor {
     }
     factor(input, output) {
         return factor(this, input, output);
+    }
+    get MustRun() {
+        return this.mustRun;
+    }
+    must() {
+        this.mustRun = true;
+        return this;
     }
     named(name) {
         this.name = name;
@@ -219,15 +227,15 @@ exports.seq = (...factors) => {
     const run = async (argv) => {
         let err = null;
         let i = 0;
-        for (; i < factors.length - 1; i++) {
+        for (; i < factors.length; i++) {
             const f = factors[i];
-            err = await f.run();
-            if (err && !(err instanceof ErrorNothingToDo)) {
-                return err;
+            if (err && !exports.isNothingToDo(err)) {
+                if (f.MustRun)
+                    await f.run();
             }
-        }
-        if (i === factors.length - 1) {
-            return await factors[i].run(argv);
+            else {
+                err = await f.run();
+            }
         }
         return err;
     };
