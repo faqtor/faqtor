@@ -11,6 +11,71 @@
 # faqtor
 Promise-based build automation for the NodeJS ecosystem 
 
+## Example
+
+You can install and run this example locally:
+
+```
+git clone https://github.com/faqtor/example faqtor-example
+cd faqtor-example
+npm i
+npm start
+```
+
+Then try to change `src/template.html` and `src/index.js`: all changes will be visible in browser immediately.
+Note, until now this example was tested with `Ubuntu 18.04.1` only (need help in testing for other platforms).
+
+Let's look at build configuration (`build/fqr.config.js`):
+
+```javascript
+// Necessary utilities from 'faqtor' library:
+const { seq, cmd, all } = require("faqtor")
+
+// Factor produced by 'minify' will perform javascript minification:
+const { minify } = require("faqtor-of-uglify");
+
+// Factor produced by 'render' will run our HTML template:
+const { render } = require("faqtor-of-handlebars");
+
+// Factor to watch changes in files:
+const { watch } = require("faqtor-of-watch");
+
+// 'bs' can produce factors for usual browser-sync tasks, like 'reload' for example:
+const bs = require("faqtor-of-browser-sync").create();
+
+// In this block we create elementary parts of our building process:
+const
+    // create 'dist' and 'dist/js' folders if they don't exist, using 'mkdirp' command:
+    makeDistFolder = cmd("mkdirp dist/js"),
+    // create development version of 'index.html' using handlebars:
+    devMakeIndexHtml = render("src/template.html", "src/index.html", {
+            indexJS: "./index.js"
+        }),
+    // create production version of 'index.html' using handlebars:
+    prodMakeIndexHtml = render("src/template.html", "dist/index.html", {
+            indexJS: "js/index.js"
+        }),
+    // minify 'index.js' for production
+    uglifyIndexJS = minify("src/index.js", "dist/js/index.js"),
+    // reload browsers if something on page has changed
+    reloadBrowserPage = bs.reload("src/index.*");
+
+module.exports = {
+    // entry 'build' to call from 'package.json/scripts': fqr build
+    // 'seq' is sequence of tasks, analog of bash && operator
+    build: seq(makeDistFolder, uglifyIndexJS, prodMakeIndexHtml),
+    // entry 'serve' to call from 'package.json/scripts': fqr serve
+    // watch for changes and reload page if necessary
+    serve: seq(devMakeIndexHtml, all(
+        bs.init({ server: { baseDir: "src" } }),
+        watch([devMakeIndexHtml, reloadBrowserPage])
+    )),
+    // entry 'clean' to call from 'package.json/scripts': fqr clean
+    clean: cmd("rimraf dist src/index.html")
+}
+
+```
+
 ## Tutorial
 
 Basically, the Faqtor build system consists of library named `faqtor` and CLI tool named `fqr`
@@ -65,6 +130,7 @@ you will see the expected output `Hello, World!`. But usually entries of `module
 
 - `cmd`
 - `seq`
+- `all`
 - `func`
 
 #### Factor of `cmd`
@@ -140,6 +206,10 @@ Hello, World!
 --COMMAND: /usr/bin/node /..../src/faqtor/tutorial/node_modules/.bin/rimraf *.o
 ~~<sequence> SUCCESS
 ```
+
+#### Factor of `all`
+
+Factor produced by `all` can execute several factors in "parallel" using `Promise.all`. See [example](#example) above.
 
 #### Factor of `func`
 
