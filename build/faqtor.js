@@ -234,6 +234,28 @@ exports.seq = (...factors) => {
     return new Factor(depends, results, run);
 };
 exports.cmds = (...c) => exports.seq(...c.map((s) => exports.cmd(s)));
+const errorsToString = (errors) => {
+    let msg = "Errors occured:\n";
+    for (const e of errors) {
+        msg += `\t${e}\n`;
+    }
+    return msg;
+};
+class CompoundError extends Error {
+    constructor(errors) {
+        super(errorsToString(errors));
+    }
+}
+exports.all = (...tsk) => {
+    const run = async (argv) => {
+        let result = await Promise.all(tsk.map((t) => t.run(argv)));
+        result = result.filter((e) => e && !exports.isReported(e));
+        if (result.length)
+            return new CompoundError(result);
+        return null;
+    };
+    return exports.func(run);
+};
 exports.production = true;
 exports.mode = "production";
 exports.setMode = (name) => {

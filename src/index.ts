@@ -57,8 +57,10 @@ export type Domain = null | string | string[];
 export interface IFactor {
     readonly Input: Domain;
     readonly Output: Domain;
+    readonly MustRun: boolean;
     run(argv?: string[]): Promise<Error>;
     factor(input: Domain, output?: Domain): IFactor;
+    must(): IFactor;
 }
 
 const norm = (d: Domain): string[] => {
@@ -99,6 +101,7 @@ const tskPrefix = "--TASK:   ";
 export class Factor implements IFactor {
     private name: string = null;
     private taskInfo: string = null;
+    private mustRun: boolean = false;
 
     constructor(
         readonly Input: Domain,
@@ -131,6 +134,15 @@ export class Factor implements IFactor {
 
     public factor(input: Domain, output?: Domain): IFactor {
         return factor(this, input, output);
+    }
+
+    public get MustRun(): boolean {
+        return this.mustRun;
+    }
+
+    public must(): IFactor {
+        this.mustRun = true;
+        return this;
     }
 
     public named(name: string) { // DO NOT CALL THIS INSIDE FAQTOR LIBRARY!
@@ -242,13 +254,13 @@ export const seq = (...factors: IFactor[]): IFactor => {
     const run  = async (argv?: string[]) => {
         let err: Error = null;
         let i = 0;
-        for (; i < factors.length - 1; i++) {
+        for (; i < factors.length; i++) {
             const f = factors[i];
-            err = await f.run();
-            if (err && !(err instanceof ErrorNothingToDo)) { return err; }
-        }
-        if (i === factors.length - 1) {
-            return await factors[i].run(argv);
+            if (err && !isNothingToDo(err)) {
+                if (f.MustRun) await f.run();
+            } else {
+                err = await f.run();
+            }
         }
 
         return err;
@@ -257,6 +269,31 @@ export const seq = (...factors: IFactor[]): IFactor => {
 };
 
 export const cmds = (...c: string[]): IFactor => seq(...c.map((s) => cmd(s)));
+
+const errorsToString = (errors: Error[]): string => {
+    let msg = "Errors occured:\n";
+    for (const e of errors) {
+        msg += `\t${e}\n`
+    }
+    return msg;
+}
+
+class CompoundError extends Error {
+    constructor(errors: Error[]) {
+        super(errorsToString(errors));
+    }
+}
+
+export const all = (...tsk: IFactor[]): IFactor => {
+    const run = async (argv?: string[]): Promise<Error> => {
+        let result = await Promise.all(tsk.map((t) => t.run(argv)));
+        result = result.filter((e) => e && !isReported(e));
+        if (result.length) return new CompoundError(result);
+        return null;
+    }
+
+    return func(run);
+}
 
 export let production = true;
 export let mode = "production";
