@@ -148,19 +148,19 @@ The first one, `cmd`, executes binary:
 const { cmd } = require("faqtor");
 
 module.exports = {
-    all:   cmd("echo 'Hello, All!'"),
-    world: cmd("echo 'Hello, World!'"),
+    friends: cmd("echo 'Hello, friends!'"),
+    world:   cmd("echo 'Hello, World!'"),
 }
 ```
 
-In this case commands `fqr all` and `fqr world` will produce more complex outputs, for example:
+In this case commands `fqr friends` and `fqr world` will produce more complex outputs, for example:
 
 ```
-fqr all
+fqr friends
 
 ==<all>
---COMMAND: /bin/echo 'Hello, All!'
-Hello, All!
+--COMMAND: /bin/echo 'Hello, friends!'
+Hello, friends!
 ~~<all> SUCCESS
 ```
 
