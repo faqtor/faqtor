@@ -158,10 +158,10 @@ In this case commands `fqr friends` and `fqr world` will produce more complex ou
 ```
 fqr friends
 
-==<all>
+==<friends>
 --COMMAND: /bin/echo 'Hello, friends!'
 Hello, friends!
-~~<all> SUCCESS
+~~<friends> SUCCESS
 ```
 
 Anouther feature of the `cmd` is that it can look for binaries in the local `node_modules`. For example if you have [rimraf](https://www.npmjs.com/package/rimraf) locally installed in your project then you can execute it:
