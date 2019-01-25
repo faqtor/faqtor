@@ -21,7 +21,7 @@ Promise-based build automation for the NodeJS ecosystem
 
 ## Example
 
-You can install and run this example locally:
+You can install and run this example locally (until now it was tested in `Ubuntu 18.04.1` only, I need help in testing for other platforms):
 
 ```
 git clone https://github.com/faqtor/example faqtor-example
@@ -31,7 +31,6 @@ npm start
 ```
 
 Then try to change `src/template.html` and `src/index.js`: all changes will be visible in browser immediately.
-Note, until now this example was tested with `Ubuntu 18.04.1` only (need help in testing for other platforms).
 
 Let's look at build configuration (`build/fqr.config.js`):
 
