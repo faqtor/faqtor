@@ -11,6 +11,14 @@
 # faqtor
 Promise-based build automation for the NodeJS ecosystem 
 
+## Table of contents
+ * [Example](#example)
+ * [Tutorial](#tutorial)
+   * [Project directory layout](#project-directory-layout)
+   * [Faqtor configuration basics](#faqtor-configuration-basics)
+   * [Real world examples](#real-world-examples)
+
+
 ## Example
 
 You can install and run this example locally:
