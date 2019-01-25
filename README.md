@@ -101,7 +101,7 @@ Also you may install additional Faqtor plugins in order to use tools like [rollu
 
 ### Project directory layout
 
-The recommended directory layout for the Faqtor project is following:
+The recommended directory layout for a Faqtor-based project is following:
 
     .
     ├──build               # Folder containing all files related to the project building
