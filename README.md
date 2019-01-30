@@ -21,7 +21,7 @@ Promise-based build automation for the NodeJS ecosystem
 
 ## Example
 
-You can install and run this example locally (until now it was tested in `Ubuntu 18.04.1` only, I need help in testing for other platforms):
+You can install and run this example locally:
 
 ```
 git clone https://github.com/faqtor/example faqtor-example
