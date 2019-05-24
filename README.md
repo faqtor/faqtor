@@ -12,76 +12,12 @@
 Promise-based build automation for the NodeJS ecosystem 
 
 ## Table of contents
- * [Example](#example)
  * [Tutorial](#tutorial)
    * [Project directory layout](#project-directory-layout)
    * [Faqtor configuration basics](#faqtor-configuration-basics)
    * [Real world examples](#real-world-examples)
+ * [Example](#example)
 
-
-## Example
-
-You can install and run this example locally:
-
-```
-git clone https://github.com/faqtor/example faqtor-example
-cd faqtor-example
-npm i
-npm start
-```
-
-Then try to change `src/template.html` and `src/index.js`: all changes will be visible in browser immediately.
-
-Let's look at build configuration (`build/fqr.config.js`):
-
-```javascript
-// Necessary utilities from 'faqtor' library:
-const { seq, cmd, all } = require("faqtor")
-
-// Factor produced by 'minify' will perform javascript minification:
-const { minify } = require("faqtor-of-uglify");
-
-// Factor produced by 'render' will run our HTML template:
-const { render } = require("faqtor-of-handlebars");
-
-// Factor to watch changes in files:
-const { watch } = require("faqtor-of-watch");
-
-// 'bs' can produce factors for usual browser-sync tasks, like 'reload' for example:
-const bs = require("faqtor-of-browser-sync").create();
-
-// In this block we create elementary parts of our building process:
-const
-    // create 'dist' and 'dist/js' folders if they don't exist, using 'mkdirp' command:
-    makeDistFolder = cmd("mkdirp dist/js"),
-    // create development version of 'index.html' using handlebars:
-    devMakeIndexHtml = render("src/template.html", "src/index.html", {
-            indexJS: "./index.js"
-        }),
-    // create production version of 'index.html' using handlebars:
-    prodMakeIndexHtml = render("src/template.html", "dist/index.html", {
-            indexJS: "js/index.js"
-        }),
-    // minify 'index.js' for production
-    uglifyIndexJS = minify("src/index.js", "dist/js/index.js"),
-    // reload browsers if something on page has changed
-    reloadBrowserPage = bs.reload("src/index.*");
-
-module.exports = {
-    // entry 'build' to call from 'package.json/scripts': fqr build
-    // 'seq' is sequence of tasks, analog of bash && operator
-    build: seq(makeDistFolder, uglifyIndexJS, prodMakeIndexHtml),
-    // entry 'serve' to call from 'package.json/scripts': fqr serve
-    // watch for changes and reload page if necessary
-    serve: seq(devMakeIndexHtml, all(
-        bs.init({ server: { baseDir: "src" } }),
-        watch([devMakeIndexHtml, reloadBrowserPage])
-    )),
-    // entry 'clean' to call from 'package.json/scripts': fqr clean
-    clean: cmd("rimraf dist src/index.html")
-}
-
-```
 
 ## Tutorial
 
@@ -316,4 +252,69 @@ Here `"index.js"` and `"index.min.js"` are used by default as input and output `
 
 Faqtor build automation system is used in [HyperOOP](https://github.com/HyperOOP) project.
 The most detailed example of Faqtor/fqr and plugins usage is [source code](https://github.com/HyperOOP/hyperoop-site) of the HyperOOP homepage. Look at [fqr.config.js](https://github.com/HyperOOP/hyperoop-site/blob/master/build/fqr.config.js). Other examples of Faqtor configuration files are [HyperOOP library](https://github.com/HyperOOP/hyperoop/blob/master/build/fqr.config.js) and [HyperOOP Router library](https://github.com/HyperOOP/hyperoop-router/blob/master/build/fqr.config.js) build configuration files. Also all our official plugins have Faqtor configuration files, but they are similar, look at [this one](https://github.com/faqtor/faqtor-of-watch/blob/master/build/fqr.config.js) for example.
+
+
+## Example
+
+You can install and run this example locally:
+
+```
+git clone https://github.com/faqtor/example faqtor-example
+cd faqtor-example
+npm i
+npm start
+```
+
+Then try to change `src/template.html` and `src/index.js`: all changes will be visible in browser immediately.
+
+Let's look at build configuration (`build/fqr.config.js`):
+
+```javascript
+// Necessary utilities from 'faqtor' library:
+const { seq, cmd, all } = require("faqtor")
+
+// Factor produced by 'minify' will perform javascript minification:
+const { minify } = require("faqtor-of-uglify");
+
+// Factor produced by 'render' will run our HTML template:
+const { render } = require("faqtor-of-handlebars");
+
+// Factor to watch changes in files:
+const { watch } = require("faqtor-of-watch");
+
+// 'bs' can produce factors for usual browser-sync tasks, like 'reload' for example:
+const bs = require("faqtor-of-browser-sync").create();
+
+// In this block we create elementary parts of our building process:
+const
+    // create 'dist' and 'dist/js' folders if they don't exist, using 'mkdirp' command:
+    makeDistFolder = cmd("mkdirp dist/js"),
+    // create development version of 'index.html' using handlebars:
+    devMakeIndexHtml = render("src/template.html", "src/index.html", {
+            indexJS: "./index.js"
+        }),
+    // create production version of 'index.html' using handlebars:
+    prodMakeIndexHtml = render("src/template.html", "dist/index.html", {
+            indexJS: "js/index.js"
+        }),
+    // minify 'index.js' for production
+    uglifyIndexJS = minify("src/index.js", "dist/js/index.js"),
+    // reload browsers if something on page has changed
+    reloadBrowserPage = bs.reload("src/index.*");
+
+module.exports = {
+    // entry 'build' to call from 'package.json/scripts': fqr build
+    // 'seq' is sequence of tasks, analog of bash && operator
+    build: seq(makeDistFolder, uglifyIndexJS, prodMakeIndexHtml),
+    // entry 'serve' to call from 'package.json/scripts': fqr serve
+    // watch for changes and reload page if necessary
+    serve: seq(devMakeIndexHtml, all(
+        bs.init({ server: { baseDir: "src" } }),
+        watch([devMakeIndexHtml, reloadBrowserPage])
+    )),
+    // entry 'clean' to call from 'package.json/scripts': fqr clean
+    clean: cmd("rimraf dist src/index.html")
+}
+
+```
 
