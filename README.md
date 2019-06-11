@@ -246,7 +246,7 @@ const uglify = minify("index.js", "index.min.js")
 
 Here `"index.js"` and `"index.min.js"` are used by default as input and output `Domain`'s correspondently.
 
-... _to be continued_ ...
+... [_to be continued_](https://medium.com/@bineev/writing-a-plugin-for-the-faqtor-task-runner-4c8e967546b9) ...
 
 ### Real world examples
 
