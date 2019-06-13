@@ -91,14 +91,14 @@ module.exports = {
 
 In this case commands `fqr friends` and `fqr world` will produce more complex outputs, for example:
 
-```
+<pre>
 fqr friends
 
-==<friends>
---COMMAND: /bin/echo 'Hello, friends!'
+<b style="color:blue">TARGET:</b>   friends
+<b style="color:gray">COMMAND:</b>  /bin/echo  'Hello, friends!'
 Hello, friends!
-~~<friends> SUCCESS
-```
+<b style="color:blue">SUCCEED:</b>  friends
+</pre>
 
 Anouther feature of the `cmd` is that it can look for binaries in the local `node_modules`. For example if you have [rimraf](https://www.npmjs.com/package/rimraf) locally installed in your project then you can execute it:
 
@@ -112,13 +112,13 @@ module.exports = {
 
 Let's try it, assuming there are some `.o` files:
 
-```
+<pre>
 fqr clean
 
-==<clean>
---COMMAND: /usr/bin/node /..../src/faqtor/tutorial/node_modules/.bin/rimraf *.o
-~~<clean> SUCCESS
-```
+<b style="color:blue">TARGET:</b>   clean
+<b style="color:gray">COMMAND:</b>  /usr/bin/node /home/osman/src/faqtor/readme/node_modules/.bin/rimraf *.o
+<b style="color:blue">SUCCEED:</b>  clean
+</pre>
 
 As you can see, `cmd` has properly found locally installed `rimraf` and executed it.
 
@@ -140,15 +140,15 @@ module.exports = {
 
 Try this configuration:
 
-```
+<pre>
 fqr sequence
 
-==<sequence>
---COMMAND: /bin/echo 'Hello, World!'
+<b style="color:blue">TARGET:</b>   sequence
+<b style="color:gray">COMMAND:</b>  /bin/echo  'Hello, World!'
 Hello, World!
---COMMAND: /usr/bin/node /..../src/faqtor/tutorial/node_modules/.bin/rimraf *.o
-~~<sequence> SUCCESS
-```
+<b style="color:gray">COMMAND:</b>  /usr/bin/node /home/osman/src/faqtor/readme/node_modules/.bin/rimraf *.o
+<b style="color:blue">SUCCEED:</b>  sequence
+</pre>
 
 #### Factor of `all`
 
@@ -176,13 +176,13 @@ module.exports = {
 
 Now try:
 
-```
+<pre>
 fqr "hello World"
 
-==<hello>
+<b style="color:blue">TARGET:</b>   hello
 Привет, World!
-~~<hello> SUCCESS
-```
+<b style="color:blue">SUCCEED:</b>  hello
+</pre>
 
 The difference between providing factor object and just function as entry is that factor have some convenient methods like `task`.
 
@@ -202,14 +202,14 @@ module.exports = {
 
 As you see we added call of the `task` method with argument `"greet someone"`. Now we can see task description in the output:
 
-```
+<pre>
 fqr "hello World"
 
-==<hello>
---TASK:    greet someone
+<b style="color:blue">TARGET:</b>   hello
+<b style="color:green">TASK:</b>     greet someone
 Привет, World!
-~~<hello> SUCCESS
-```
+<b style="color:blue">SUCCEED:</b>  hello
+</pre>
 
 It is especially convenient when you run many tasks during build process, and some of them may run silently.
 
