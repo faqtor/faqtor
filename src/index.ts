@@ -100,8 +100,8 @@ export class ErrorNothingToDo extends Error implements IReportedError {
 export const isNothingToDo = (e: Error): e is ErrorNothingToDo => !!((e as ErrorNothingToDo).nothingToDo);
 
 const trgPrefix =      chalk.blue.bold("TARGET:   ");
-const cmdPrefix =           chalk.bold("COMMAND:  ");
-const tskPrefix =           chalk.bold("TASK:     ");
+const cmdPrefix =      chalk.gray.bold("COMMAND:  ");
+const tskPrefix =     chalk.green.bold("TASK:     ");
 const sccPrefix =      chalk.blue.bold("SUCCEED:  ");
 const errPrefix = chalk.redBright.bold("ERROR IN: ");
 const notPrefix =      chalk.blue.bold("NO TASKS: ");
@@ -243,7 +243,8 @@ export const cmd = (s: string): IFactor => {
         if (!err) {
             const extCmd = rpath;
             const intCmd = args[0];
-            console.log(cmdPrefix + extCmd + " " + s.replace(intCmd, "").trimLeft());
+            const txt = (extCmd + " " + s.replace(intCmd, "")).trim()
+            console.log(cmdPrefix + txt);
             return await runCommand(rpath, ...args.slice(1));
         }
         return err;
