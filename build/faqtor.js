@@ -17,6 +17,8 @@ const path = __importStar(require("path"));
 const string_argv_1 = __importDefault(require("string-argv"));
 const util = __importStar(require("util"));
 const which_1 = __importDefault(require("which"));
+const chalk_ = __importStar(require("chalk"));
+const chalk = chalk_.default;
 class ErrorPathDoesNotExists extends Error {
     constructor(p) {
         super(`Path ${p} does not exist`);
@@ -78,8 +80,12 @@ class ErrorNothingToDo extends Error {
 }
 exports.ErrorNothingToDo = ErrorNothingToDo;
 exports.isNothingToDo = (e) => !!(e.nothingToDo);
-const cmdPrefix = "--COMMAND:";
-const tskPrefix = "--TASK:   ";
+const trgPrefix = chalk.blue.bold("TARGET:   ");
+const cmdPrefix = chalk.bold("COMMAND:  ");
+const tskPrefix = chalk.bold("TASK:     ");
+const sccPrefix = chalk.blue.bold("SUCCEED:  ");
+const errPrefix = chalk.redBright.bold("ERROR IN: ");
+const notPrefix = chalk.blue.bold("NO TASKS: ");
 class Factor {
     constructor(Input, Output, runf) {
         this.Input = Input;
@@ -91,24 +97,24 @@ class Factor {
     }
     async run(argv) {
         if (this.name) {
-            console.log("\n" + `==<${this.name}>`);
+            console.log("\n" + trgPrefix + this.name);
         }
         if (this.taskInfo) {
-            console.log(`${tskPrefix} ${this.taskInfo}`);
+            console.log(`${tskPrefix}${this.taskInfo}`);
         }
         const err = await this.runf(argv);
         if (this.name) {
             if (err) {
                 if (err instanceof ErrorNothingToDo) {
-                    console.log(`~~NOTHING TO DO FOR <${this.name}>`);
+                    console.log(`${notPrefix}${this.name}`);
                 }
                 else if (!exports.isReported(err)) {
                     err.reported = true;
-                    console.log(`~~ERROR IN <${this.name}>:`, err);
+                    console.log(`${errPrefix}${this.name}, ${err}`);
                 }
             }
             else {
-                console.log(`~~<${this.name}> SUCCESS`);
+                console.log(sccPrefix + this.name);
             }
         }
         return err;
@@ -210,7 +216,7 @@ exports.cmd = (s) => {
         if (!err) {
             const extCmd = rpath;
             const intCmd = args[0];
-            console.log(cmdPrefix, extCmd + " " + s.replace(intCmd, "").trimLeft());
+            console.log(cmdPrefix + extCmd + " " + s.replace(intCmd, "").trimLeft());
             return await runCommand(rpath, ...args.slice(1));
         }
         return err;
