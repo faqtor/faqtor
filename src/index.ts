@@ -1,4 +1,4 @@
-import { exec, spawn } from "child_process";
+import { exec, spawn, ChildProcessByStdio } from "child_process";
 import * as fs from "fs";
 import glob from "glob";
 import * as path from "path";
@@ -211,10 +211,16 @@ class ErrorNonZeroExitCode extends Error {
 
 async function runCommand(extCmd: string, ...args: string[]): Promise<Error> {
     return await new Promise((resolve) => {
-        const proc = spawn(extCmd, args, {stdio: [process.stdin, process.stdout, process.stderr]});
+        let proc: ChildProcessByStdio<null, null, null> = null;
+        if (!/^win/.test(process.platform)) { // linux
+            proc = spawn(extCmd, args, {stdio: [process.stdin, process.stdout, process.stderr]});
+        } else { // windows
+            proc = spawn('cmd', ['/s', '/c', extCmd, ...args],
+                {stdio: [process.stdin, process.stdout, process.stderr]});
+        }
         proc.on("exit", (code) => resolve(code ? new ErrorNonZeroExitCode(extCmd, code) : null));
         proc.on("error", (err) => resolve(err));
-    });
+});
 }
 
 export const func = (
@@ -231,11 +237,11 @@ export const cmd = (s: string): IFactor => {
         let rpath: string;
         [rpath, err] = await resolveBin(args[0]);
         if (!err) {
-            const extCmd = process.argv[0];
+            const extCmd = rpath;
             const intCmd = args[0];
-            args[0] = rpath;
-            console.log(cmdPrefix, extCmd + " " + s.replace(intCmd, rpath));
-            return await runCommand(process.argv[0], ...args);
+            const txt = (extCmd + " " + s.replace(intCmd, "")).trim()
+            console.log(cmdPrefix + txt);
+            return await runCommand(rpath, ...args.slice(1));
         }
         [err, rpath] = await new Promise((resolve) => {
             which(args[0], (e, p) => resolve([e, p]));

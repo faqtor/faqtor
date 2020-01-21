@@ -186,7 +186,13 @@ class ErrorNonZeroExitCode extends Error {
 }
 async function runCommand(extCmd, ...args) {
     return await new Promise((resolve) => {
-        const proc = child_process_1.spawn(extCmd, args, { stdio: [process.stdin, process.stdout, process.stderr] });
+        let proc = null;
+        if (!/^win/.test(process.platform)) { // linux
+            proc = child_process_1.spawn(extCmd, args, { stdio: [process.stdin, process.stdout, process.stderr] });
+        }
+        else { // windows
+            proc = child_process_1.spawn('cmd', ['/s', '/c', extCmd, ...args], { stdio: [process.stdin, process.stdout, process.stderr] });
+        }
         proc.on("exit", (code) => resolve(code ? new ErrorNonZeroExitCode(extCmd, code) : null));
         proc.on("error", (err) => resolve(err));
     });
@@ -204,11 +210,11 @@ exports.cmd = (s) => {
         let rpath;
         [rpath, err] = await resolveBin(args[0]);
         if (!err) {
-            const extCmd = process.argv[0];
+            const extCmd = rpath;
             const intCmd = args[0];
-            args[0] = rpath;
-            console.log(cmdPrefix, extCmd + " " + s.replace(intCmd, rpath));
-            return await runCommand(process.argv[0], ...args);
+            const txt = (extCmd + " " + s.replace(intCmd, "")).trim();
+            console.log(cmdPrefix + txt);
+            return await runCommand(rpath, ...args.slice(1));
         }
         [err, rpath] = await new Promise((resolve) => {
             which_1.default(args[0], (e, p) => resolve([e, p]));
