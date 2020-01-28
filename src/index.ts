@@ -215,7 +215,7 @@ async function runCommand(extCmd: string, ...args: string[]): Promise<Error> {
         if (!/^win/.test(process.platform)) { // linux
             proc = spawn(extCmd, args, {stdio: [process.stdin, process.stdout, process.stderr]});
         } else { // windows
-            proc = spawn('cmd', ['/s', '/c', extCmd, ...args],
+            proc = spawn('cmd', ['/s', '/c', path.basename(extCmd), ...args],
                 {stdio: [process.stdin, process.stdout, process.stderr]});
         }
         proc.on("exit", (code) => resolve(code ? new ErrorNonZeroExitCode(extCmd, code) : null));

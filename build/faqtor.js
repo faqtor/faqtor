@@ -191,7 +191,7 @@ async function runCommand(extCmd, ...args) {
             proc = child_process_1.spawn(extCmd, args, { stdio: [process.stdin, process.stdout, process.stderr] });
         }
         else { // windows
-            proc = child_process_1.spawn('cmd', ['/s', '/c', extCmd, ...args], { stdio: [process.stdin, process.stdout, process.stderr] });
+            proc = child_process_1.spawn('cmd', ['/s', '/c', path.basename(extCmd), ...args], { stdio: [process.stdin, process.stdout, process.stderr] });
         }
         proc.on("exit", (code) => resolve(code ? new ErrorNonZeroExitCode(extCmd, code) : null));
         proc.on("error", (err) => resolve(err));
